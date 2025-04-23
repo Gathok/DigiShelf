@@ -27,4 +27,9 @@ data class AddState(
     val showCompleteWithIsbn: Boolean = false,
     val bookSeries: BookSeries? = null,
     val bookSeriesList: List<BookSeries> = emptyList(),
+    val pages: String = "",
+    val pagesError: Boolean = false,
+    val price: String = "",
+    val priceError: Boolean = false,
+    val imageUrl: String = "",
 )

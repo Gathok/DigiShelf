@@ -1,28 +1,30 @@
 package de.malteans.digishelf.core.presentation.add
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -45,7 +47,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import de.malteans.digishelf.core.domain.BookSeries
@@ -60,12 +64,15 @@ import digishelf.composeapp.generated.resources.auto_complete
 import digishelf.composeapp.generated.resources.back
 import digishelf.composeapp.generated.resources.book_added_success
 import digishelf.composeapp.generated.resources.book_series
+import digishelf.composeapp.generated.resources.cover_image
 import digishelf.composeapp.generated.resources.data_incomplete
 import digishelf.composeapp.generated.resources.error_msg_add_incomplete
 import digishelf.composeapp.generated.resources.is_double_isbn
 import digishelf.composeapp.generated.resources.isbn
 import digishelf.composeapp.generated.resources.no_series
 import digishelf.composeapp.generated.resources.owned
+import digishelf.composeapp.generated.resources.pages
+import digishelf.composeapp.generated.resources.price
 import digishelf.composeapp.generated.resources.read
 import digishelf.composeapp.generated.resources.scan
 import digishelf.composeapp.generated.resources.show
@@ -143,7 +150,7 @@ fun AddScreen(
                 },
                 actions = {
                     IconButton(onClick = {
-                        if (state.title.isNotBlank()) {
+                        if (state.title.isNotBlank() && !state.pagesError && !state.priceError) {
                             if (state.author.isBlank() || state.isbn.isBlank()) {
                                 onAction(AddAction.OnShowIncompleteError)
                             } else {
@@ -154,7 +161,8 @@ fun AddScreen(
                         Icon(
                             imageVector = Icons.Filled.Check,
                             contentDescription = stringResource(Res.string.submit),
-                            tint = if (state.title.isNotBlank()) MaterialTheme.colorScheme.primary
+                            tint = if (state.title.isNotBlank() && !state.pagesError && !state.priceError)
+                                MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     }
@@ -233,7 +241,8 @@ fun AddScreen(
             modifier = Modifier
                 .padding(12.dp, pad.calculateTopPadding(), 12.dp, 12.dp)
                 .verticalScroll(scrollState)
-                .blur(if (state.isLoading) 1.dp else 0.dp)
+                .blur(if (state.isLoading) 1.dp else 0.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             // Title ------------------------------------------------------------------------------
             OutlinedTextField(
@@ -256,9 +265,17 @@ fun AddScreen(
                                 .padding(end = 8.dp)
                         )
                     }
-                }
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next,
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = {
+                        focusManger.moveFocus(FocusDirection.Down)
+                    }
+                )
             )
-            Spacer(modifier = Modifier.height(16.dp))
             // Author -----------------------------------------------------------------------------
             OutlinedTextField(
                 value = state.author,
@@ -267,32 +284,37 @@ fun AddScreen(
                 },
                 label = { Text(stringResource(Res.string.author)) },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next,
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = {
+                        focusManger.moveFocus(FocusDirection.Down)
+                    }
+                )
             )
             // ISBN -------------------------------------------------------------------------------
-            Spacer(modifier = Modifier.height(16.dp))
-            if (state.isDoubleIsbn) {
-                Row (
-                    Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = stringResource(Res.string.is_double_isbn),
-                        modifier = Modifier.padding(end = 8.dp),
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                    Text(
-                        text = stringResource(Res.string.is_double_isbn),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
             OutlinedTextField(
                 value = state.isbn,
                 onValueChange = {
                     onAction(AddAction.OnIsbnChanged(it))
                 },
                 label = { Text(stringResource(Res.string.isbn)) },
+                isError = state.isDoubleIsbn,
+                supportingText = {
+                    AnimatedVisibility (
+                        visible = state.isDoubleIsbn,
+                        enter = expandVertically(),
+                        exit = shrinkVertically()
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.is_double_isbn),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 trailingIcon = {
@@ -318,9 +340,16 @@ fun AddScreen(
                         )
                     }
                 },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Next,
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = {
+                        focusManger.moveFocus(FocusDirection.Down)
+                    }
+                ),
             )
-            Spacer(modifier = Modifier.height(16.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -358,7 +387,6 @@ fun AddScreen(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
             Row (
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -369,9 +397,74 @@ fun AddScreen(
                     ),
                     options = state.bookSeriesList.associateBy({ it }, { it.title }),
                     label = stringResource(Res.string.book_series),
-                    onValueChanged = { onAction(AddAction.BookSeriesChanged(it as BookSeries?)) },
+                    onValueChanged = { onAction(AddAction.OnBookSeriesChanged(it as BookSeries?)) },
                 )
             }
+            // Pages, Price -----------------------------------------------------------------------
+            Row (
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(
+                    value = state.pages,
+                    onValueChange = {
+                        onAction(AddAction.OnPagesChanged(it))
+                    },
+                    label = { Text(stringResource(Res.string.pages)) },
+                    isError = state.pagesError,
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = {
+                            focusManger.moveFocus(FocusDirection.Right)
+                        }
+                    )
+                )
+                OutlinedTextField(
+                    value = state.price,
+                    onValueChange = {
+                        onAction(AddAction.OnPriceChanged(it))
+                    },
+                    label = { Text(stringResource(Res.string.price)) },
+                    suffix = { Text("€") },
+                    isError = state.priceError,
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = {
+                            focusManger.moveFocus(FocusDirection.Down)
+                        }
+                    )
+                )
+            }
+            // Image URL --------------------------------------------------------------------------
+            OutlinedTextField(
+                value = state.imageUrl,
+                onValueChange = {
+                    onAction(AddAction.OnImageUrlChanged(it))
+                },
+                label = { Text(stringResource(Res.string.cover_image)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Uri,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        focusManger.clearFocus()
+                    }
+                )
+            )
         }
     }
 }

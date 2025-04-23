@@ -56,7 +56,7 @@ class AddViewModel (
 
                 _state.update { it.copy(
                     isbn = isbn,
-                    showIncompleteError = isbn.isIsbnFormat(),
+                    showCompleteWithIsbn = isbn.isIsbnFormat(),
                 ) }
                 viewModelScope.launch {
                     _state.update { it.copy(
@@ -72,6 +72,21 @@ class AddViewModel (
             }
             is AddAction.OnRatingChanged -> {
                 _state.value = _state.value.copy(rating = action.rating)
+            }
+            is AddAction.OnPagesChanged -> {
+                _state.value = _state.value.copy(
+                    pages = action.pages,
+                    pagesError = action.pages.isBlank() || action.pages.toIntOrNull() != null
+                )
+            }
+            is AddAction.OnPriceChanged -> {
+                _state.value = _state.value.copy(
+                    price = action.price,
+                    priceError = action.price.isBlank() || action.price.toDoubleOrNull() != null
+                )
+            }
+            is AddAction.OnImageUrlChanged -> {
+                _state.value = _state.value.copy(imageUrl = action.imageUrl)
             }
             // On Auto Complete -------------------------------------------------------------------
             is AddAction.OnAutoComplete -> {
@@ -94,6 +109,9 @@ class AddViewModel (
                                     author = book.author,
                                     isbn = book.isbn,
                                     isDoubleIsbn = book.isbn.isDoubleIsbn(),
+                                    imageUrl = book.imageUrl,
+                                    pages = book.pageCount?.toString() ?: "",
+                                    price = book.price?.toString() ?: "",
                                     isLoading = false,
                                 )
                             }
@@ -149,6 +167,9 @@ class AddViewModel (
                 val possessionStatus = _state.value.possessionStatus
                 val readStatus = _state.value.readStatus
                 val rating = _state.value.rating
+                val pageCount = _state.value.pages.toIntOrNull()
+                val price = _state.value.price.toDoubleOrNull()
+                val imageUrl = _state.value.imageUrl
 
                 var book = Book(
                     title = title,
@@ -157,41 +178,14 @@ class AddViewModel (
                     possessionStatus = possessionStatus,
                     readStatus = readStatus,
                     rating = rating,
+                    pageCount = pageCount,
+                    imageUrl = imageUrl,
+                    price = price,
+                    currency = "EUR", // TODO: Implement currency selection
                     bookSeries = _state.value.bookSeries
                 )
 
                 viewModelScope.launch {
-                    repository
-                        .fetchBookFromRemote(
-                            title = book.title,
-                            author = book.author,
-                            isbn = if (book.isbn.isIsbnFormat()) book.isbn else null
-                        )
-                        .onSuccess { remoteBook ->
-                            if (!book.isbn.isIsbnFormat()
-                                || (book.isbn == remoteBook.isbn)
-                                || (book.title == remoteBook.title && book.author == remoteBook.author)
-                            ){
-                                // Author
-                                if (remoteBook.author.contains(book.author))
-                                    book = book.copy(author = remoteBook.author)
-                                // Title
-                                if (remoteBook.title.contains(book.title))
-                                    book = book.copy(title = remoteBook.title)
-                                // ISBN
-                                if (!book.isbn.isIsbnFormat() && remoteBook.isbn.isIsbnFormat())
-                                    book = book.copy(isbn = remoteBook.isbn)
-                                // Online Values
-                                book = book.copy(
-                                    onlineDescription = remoteBook.onlineDescription,
-                                    imageUrl = remoteBook.imageUrl,
-                                    pageCount = remoteBook.pageCount,
-                                    price = remoteBook.price,
-                                    currency = remoteBook.currency,
-                                )
-                            }
-                        }
-
                     val newId = repository.addBook(book)
                     _state.value = AddState(
                         addedBookId = newId,
@@ -201,7 +195,7 @@ class AddViewModel (
             is AddAction.ClearFields -> {
                 _state.value = AddState()
             }
-            is AddAction.BookSeriesChanged -> {
+            is AddAction.OnBookSeriesChanged -> {
                 _state.value = _state.value.copy(
                     bookSeries = action.bookSeries
                 )
