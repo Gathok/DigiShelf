@@ -3,6 +3,7 @@ package de.malteans.digishelf.core.presentation.details.components
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +51,8 @@ fun BlurredImageBackground(
     imageUrl: String?,
     onBackClick: () -> Unit,
     rightIcons: @Composable () -> Unit,
+    onImageClick: () -> Unit = {},
+    onImageLongClick: () -> Unit = {},
     errorImageId: Int = nextInt(5),
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
@@ -159,14 +162,18 @@ fun BlurredImageBackground(
                             painter = if(result?.isSuccess == true) painter
                                 else errorPainter,
                             contentDescription = "Book Cover",
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Transparent),
                             contentScale = if(result?.isSuccess == true) {
                                 ContentScale.Crop
                             } else {
                                 ContentScale.Fit
-                            }
+                            },
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Transparent)
+                                .combinedClickable(
+                                    onClick = onImageClick,
+                                    onLongClick = onImageLongClick,
+                                ),
                         )
                     }
                 }

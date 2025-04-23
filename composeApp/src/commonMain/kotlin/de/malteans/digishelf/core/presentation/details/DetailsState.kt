@@ -7,6 +7,9 @@ data class DetailsState(
     val bookId: Long? = null,
     val book: Book? = null,
 
+    val imageUrl: String = "",
+    val imageUrlChanged: Boolean = false,
+
     val isbn: String = "",
     val isbnChanged: Boolean = false,
     val title: String = "",
@@ -38,6 +41,7 @@ data class DetailsState(
     val isEditing: Boolean = false,
     val isDoubleIsbn: Boolean = false,
 
-    val coverImage: String = "",
+
+
     val onlineDescription: String? = null,
 )

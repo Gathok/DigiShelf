@@ -44,6 +44,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -58,6 +59,7 @@ import de.malteans.digishelf.core.presentation.components.customReadIcon
 import de.malteans.digishelf.core.presentation.details.components.BlurredImageBackground
 import de.malteans.digishelf.core.presentation.details.components.BookChip
 import de.malteans.digishelf.core.presentation.details.components.ChipSize
+import de.malteans.digishelf.core.presentation.details.components.CustomOpenInBrowserIcon
 import de.malteans.digishelf.core.presentation.details.components.CustomRemoveIcon
 import de.malteans.digishelf.core.presentation.details.components.EditType
 import de.malteans.digishelf.core.presentation.details.components.TitledContent
@@ -126,6 +128,8 @@ fun DetailsScreen(
     state: DetailsState,
     onAction: (DetailsAction) -> Unit,
 ) {
+    val uriHandler = LocalUriHandler.current
+
     var showConfirmLeaveDialog by remember { mutableStateOf(false) }
     var showNoTitleDialog by remember { mutableStateOf(false) }
 
@@ -190,12 +194,13 @@ fun DetailsScreen(
                 EditType.PRICE -> tempString.let { value ->
                     value.isEmpty() || (value.toDoubleOrNull() != null && value.toDouble() >= 0)
                 }
-                EditType.STATUS, EditType.BOOK_SERIES, EditType.DESCRIPTION -> true
+                EditType.COVER_IMAGE, EditType.STATUS, EditType.BOOK_SERIES, EditType.DESCRIPTION -> true
             }
         }
 
         LaunchedEffect(key1 = curEditType) {
             tempString = when (curEditType) {
+                EditType.COVER_IMAGE -> state.imageUrl
                 EditType.ISBN -> state.isbn
                 EditType.TITLE -> state.title
                 EditType.AUTHOR -> state.author
@@ -209,6 +214,7 @@ fun DetailsScreen(
         fun onDoneClicked() {
             if (readyToFinish) {
                 when (curEditType) {
+                    EditType.COVER_IMAGE -> onAction(DetailsAction.ImageUrlChanged(tempString))
                     EditType.ISBN -> onAction(DetailsAction.IsbnChanged(tempString))
                     EditType.TITLE -> onAction(DetailsAction.TitleChanged(tempString))
                     EditType.AUTHOR -> onAction(DetailsAction.AuthorChanged(tempString))
@@ -347,6 +353,26 @@ fun DetailsScreen(
                         ),
                     )
                 }
+                EditType.COVER_IMAGE -> {
+                    OutlinedTextField(
+                        value = tempString,
+                        onValueChange = { tempString = it },
+                        label = { Text(text = stringResource(
+                            Res.string.new_label,
+                            stringResource(curEditType.getTypeStringResource)),
+                        ) },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Uri,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                onDoneClicked()
+                            }
+                        )
+                    )
+                }
                 else -> {
                     OutlinedTextField(
                         value = tempString,
@@ -361,7 +387,7 @@ fun DetailsScreen(
                             EditType.READING_TIME
                                 -> Text(text = stringResource(Res.string.minutes_short))
                             EditType.ISBN, EditType.TITLE, EditType.AUTHOR, EditType.PAGE_COUNT,
-                            EditType.STATUS, EditType.BOOK_SERIES, EditType.DESCRIPTION
+                            EditType.STATUS, EditType.BOOK_SERIES, EditType.DESCRIPTION, EditType.COVER_IMAGE
                                 -> Text(text = "")
                         } },
                         modifier = Modifier.fillMaxWidth(),
@@ -371,7 +397,7 @@ fun DetailsScreen(
                                     -> KeyboardType.Number
                                 EditType.TITLE, EditType.AUTHOR, EditType.DESCRIPTION
                                     -> KeyboardType.Text
-                                EditType.STATUS, EditType.BOOK_SERIES
+                                EditType.STATUS, EditType.BOOK_SERIES, EditType.COVER_IMAGE
                                     -> throw IllegalStateException("Something went weirdly wrong")
                             },
                             imeAction = when(curEditType) {
@@ -380,7 +406,7 @@ fun DetailsScreen(
                                     -> ImeAction.Done
                                 EditType.DESCRIPTION
                                     -> ImeAction.Default
-                                EditType.STATUS, EditType.BOOK_SERIES
+                                EditType.STATUS, EditType.BOOK_SERIES, EditType.COVER_IMAGE
                                     -> throw IllegalStateException("Something went weirdly wrong")
                             }
                         ),
@@ -396,9 +422,17 @@ fun DetailsScreen(
     }
 
     BlurredImageBackground(
-        imageUrl = state.book?.imageUrl?.replace("http://", "https://"),
+        imageUrl = state.imageUrl.replace("http://", "https://"),
         onBackClick = { onDismiss() },
         rightIcons = @Composable {
+            IconButton(
+                onClick = { uriHandler.openUri("https://www.thalia.de/suche?sq=" + state.isbn.ifBlank { state.title }) }
+            ) {
+                Icon(
+                    imageVector = CustomOpenInBrowserIcon,
+                    contentDescription = "Open in Browser",
+                )
+            }
             if (!state.isEditing) {
                 IconButton(onClick = {
                     onAction(DetailsAction.SwitchEditing)
@@ -449,6 +483,17 @@ fun DetailsScreen(
                     else MaterialTheme.colorScheme.onSurface
                 )
             }
+        },
+        onImageClick = {
+            if (state.isEditing) {
+                curEditType = EditType.COVER_IMAGE
+                showEditDialog = true
+            }
+        },
+        onImageLongClick = {
+            if (!state.isEditing) onAction(DetailsAction.SwitchEditing)
+            curEditType = EditType.COVER_IMAGE
+            showEditDialog = true
         },
         errorImageId = (state.book?.bookSeries?.id?.rem(5) ?: state.book?.id?.rem(5))?.toInt() ?: nextInt(5),
     ) {
@@ -575,7 +620,7 @@ fun DetailsScreen(
                         TitledContent(
                             title = stringResource(Res.string.pages),
                             color = if (state.pagesChanged) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurface,
+                                else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier
                                 .combinedClickable (
                                     onClick = {
@@ -645,7 +690,7 @@ fun DetailsScreen(
                                 Icon(
                                     imageVector = CustomBookIcon,
                                     contentDescription = "Possession Status",
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(
                                         alpha = if (state.possessionStatus) 1f else 0.4f
                                     )
                                 )
@@ -653,7 +698,7 @@ fun DetailsScreen(
                                 Icon(
                                     imageVector = customReadIcon(),
                                     contentDescription = "Read Status",
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(
                                         alpha = if (state.readStatus) 1f else 0.4f
                                     )
                                 )

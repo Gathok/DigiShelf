@@ -21,7 +21,7 @@ sealed class DetailsAction {
     data class SeriesChanged(val series: BookSeries?): DetailsAction()
     data class ReadingTimeChanged(val readingTime: Int?): DetailsAction()
 
-    data class SetCoverImage(val coverImage: String): DetailsAction()
+    data class ImageUrlChanged(val coverImage: String): DetailsAction()
     data class SetOnlineDescription(val onlineDescription: String): DetailsAction()
 
     data object SwitchEditing: DetailsAction()

@@ -42,6 +42,7 @@ class DetailsViewModel (
     private val _state = MutableStateFlow(DetailsState())
 
     val state = combine(_book, _state, _bookSeriesList) { book, state, bookSeriesList ->
+        val coverImageChanged = state.imageUrl != book?.imageUrl
         val isbnChanged = state.isbn != book?.isbn
         val ratingChanged = !((state.rating == book?.rating) ||
                 (state.rating == 0 && book?.rating == null))
@@ -59,6 +60,7 @@ class DetailsViewModel (
             bookId = book?.id,
             book = book,
 
+            imageUrlChanged = coverImageChanged,
             isbnChanged = isbnChanged,
             ratingChanged = ratingChanged,
             titleChanged = titleChanged,
@@ -69,9 +71,9 @@ class DetailsViewModel (
             statusChanged = statusChanged,
             readingTimeChanged = readingTimeChanged,
             seriesChanged = seriesChanged,
-            somethingChanged = isbnChanged || ratingChanged || titleChanged || authorChanged ||
-                    priceChanged || pageCountChanged || statusChanged || readingTimeChanged ||
-                    seriesChanged || descriptionChanged,
+            somethingChanged = coverImageChanged || isbnChanged || ratingChanged || titleChanged ||
+                    authorChanged || priceChanged || pageCountChanged || statusChanged ||
+                    readingTimeChanged || seriesChanged || descriptionChanged,
 
             bookSeriesList = bookSeriesList,
         )
@@ -146,8 +148,8 @@ class DetailsViewModel (
             is DetailsAction.ReadingTimeChanged -> {
                 _state.value = _state.value.copy(readingTime = action.readingTime)
             }
-            is DetailsAction.SetCoverImage -> {
-                _state.value = _state.value.copy(coverImage = action.coverImage)
+            is DetailsAction.ImageUrlChanged -> {
+                _state.value = _state.value.copy(imageUrl = action.coverImage)
             }
             is DetailsAction.SetOnlineDescription -> {
                 _state.value = _state.value.copy(onlineDescription = action.onlineDescription)
@@ -157,6 +159,7 @@ class DetailsViewModel (
             }
             is DetailsAction.UpdateBook -> {
                 val book = state.value.book?.copy(
+                    imageUrl = _state.value.imageUrl,
                     isbn = _state.value.isbn,
                     rating = when (_state.value.rating) {
                         0 -> null
@@ -203,6 +206,7 @@ class DetailsViewModel (
     private fun onBookChanged(book: Book) {
         _state.update {
             it.copy(
+                imageUrl = book.imageUrl,
                 isbn = book.isbn,
                 rating = book.rating ?: 0,
                 title = book.title,
@@ -215,9 +219,8 @@ class DetailsViewModel (
                 readingTime = book.readingTime,
                 series = book.bookSeries,
                 description = book.description,
-                coverImage = book.imageUrl,
                 onlineDescription = book.onlineDescription,
-                isEditing = false
+                isEditing = false,
             )
         }
     }
