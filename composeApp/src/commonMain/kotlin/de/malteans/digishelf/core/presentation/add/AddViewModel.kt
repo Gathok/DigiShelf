@@ -76,13 +76,14 @@ class AddViewModel (
             is AddAction.OnPagesChanged -> {
                 _state.value = _state.value.copy(
                     pages = action.pages,
-                    pagesError = action.pages.isBlank() || action.pages.toIntOrNull() != null
+                    pagesError = action.pages.isBlank() || action.pages.toIntOrNull() == null
                 )
             }
             is AddAction.OnPriceChanged -> {
                 _state.value = _state.value.copy(
                     price = action.price,
-                    priceError = action.price.isBlank() || action.price.toDoubleOrNull() != null
+                    priceError = action.price.isBlank()
+                            || action.price.replace(",",".").toDoubleOrNull() == null
                 )
             }
             is AddAction.OnImageUrlChanged -> {

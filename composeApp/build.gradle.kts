@@ -119,8 +119,8 @@ android {
         applicationId = "de.malteans.digishelf"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 3412012
-        versionName = "1.0-pre2"
+        versionCode = 3412013
+        versionName = "1.0-pre3"
     }
     packaging {
         resources {
