@@ -132,6 +132,7 @@ fun OverviewScreen(
                         tempFilterOptions.sortType = when (value) {
                             0 -> SortType.TITLE
                             1 -> SortType.AUTHOR
+                            2 -> SortType.SERIES
                             else -> SortType.TITLE
                         }
                     }
@@ -149,7 +150,7 @@ fun OverviewScreen(
             },
             filterItemsList = listOf(stringResource(Res.string.owned)+":", stringResource(Res.string.read)+":"),
             typeItemsList = mapOf(
-                stringResource(Res.string.sort_by)+":" to listOf(stringResource(Res.string.title), stringResource(Res.string.author)),
+                stringResource(Res.string.sort_by)+":" to listOf(stringResource(Res.string.title), stringResource(Res.string.author), stringResource(Res.string.series)),
                 stringResource(Res.string.search_by)+":" to listOf(stringResource(Res.string.title), stringResource(Res.string.author),
                     stringResource(Res.string.isbn), stringResource(Res.string.series), stringResource(Res.string.series_id))
             ),

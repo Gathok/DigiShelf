@@ -117,4 +117,6 @@
     <string name="cloud_completion">Cloud Vervollständigung</string>
     <string name="cloud_completion_desc">Vervollständige alle lokalen Bücher mit Daten aus der cloud.</string>
     <string name="minutes_short">min</string>
+    <string name="hours_short">Std.</string>
+    <string name="min_per_page">m/S.</string>
 </resources>

@@ -73,7 +73,8 @@ import digishelf.composeapp.generated.resources.error
 import digishelf.composeapp.generated.resources.error_msg_no_title
 import digishelf.composeapp.generated.resources.error_msg_save_changes
 import digishelf.composeapp.generated.resources.error_save_changes
-import digishelf.composeapp.generated.resources.hours
+import digishelf.composeapp.generated.resources.hours_short
+import digishelf.composeapp.generated.resources.min_per_page
 import digishelf.composeapp.generated.resources.minutes_short
 import digishelf.composeapp.generated.resources.new_label
 import digishelf.composeapp.generated.resources.no_description_available
@@ -714,16 +715,33 @@ fun DetailsScreen(
                             ),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
+                        var perPageCounter by remember { mutableStateOf(1) }
+                        LaunchedEffect(Unit) {
+                            while (true) {
+                                delay(1000L)
+                                perPageCounter = (perPageCounter + 1) % 4
+                            }
+                        }
+
+                        var showPerPage by remember { mutableStateOf(false) }
+                        LaunchedEffect(perPageCounter) {
+                            if (perPageCounter == 0) {
+                                showPerPage = !showPerPage
+                            }
+                        }
+
                         TitledContent(
                             title = stringResource(Res.string.reading_time),
                             color = if (state.readingTimeChanged) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurface,
+                                else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier
                                 .combinedClickable (
                                     onClick = {
                                         if (state.isEditing) {
                                             curEditType = EditType.READING_TIME
                                             showEditDialog = true
+                                        } else {
+                                            perPageCounter = 0
                                         }
                                     },
                                     onLongClick = {
@@ -737,7 +755,9 @@ fun DetailsScreen(
                                 size = ChipSize.LARGE
                             ) {
                                 Text(
-                                    text = state.readingTime?.toReadingTimeString() ?: "–",
+                                    text = if (state.pageCount != null && showPerPage)
+                                        state.readingTime?.toReadingTimePerPageString(state.pageCount) ?: "–"
+                                    else state.readingTime?.toReadingTimeString() ?: "–",
                                 )
                             }
                         }
@@ -880,8 +900,8 @@ fun DetailsScreen(
 fun Int.toReadingTimeString() : String {
     val minutes: Int = this % 60
     val hours: Int = (this - minutes) / 60
-    return if (minutes < 10) "$hours:0$minutes ${stringResource(Res.string.hours)}"
-    else "$hours:$minutes ${stringResource(Res.string.hours)}"
+    return if (minutes < 10) "$hours:0$minutes ${stringResource(Res.string.hours_short)}"
+    else "$hours:$minutes ${stringResource(Res.string.hours_short)}"
 }
 
 fun Double.toPriceString(currency: String?) : String {
@@ -897,4 +917,15 @@ fun Double.toPriceString(currency: String?) : String {
         "GBP" -> "$price £"
         else -> "$price $currency"
     }
+}
+
+@Composable
+fun Int.toReadingTimePerPageString(pageCount: Int) : String {
+    if (pageCount <= 0) return "– ${stringResource(Res.string.min_per_page)}"
+    val minsPerPage = this / pageCount.toDouble()
+    val minutes: Int = minsPerPage.toInt()
+    val seconds: Int = ((minsPerPage - minutes) * 60).toInt()
+
+    return if (seconds < 10) "$minutes:0$seconds ${stringResource(Res.string.min_per_page)}"
+        else "$minutes:$seconds ${stringResource(Res.string.min_per_page)}"
 }
