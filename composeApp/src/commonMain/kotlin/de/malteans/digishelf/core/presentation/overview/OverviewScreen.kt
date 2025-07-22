@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
@@ -46,6 +47,7 @@ import digishelf.composeapp.generated.resources.app_name
 import digishelf.composeapp.generated.resources.author
 import digishelf.composeapp.generated.resources.filter
 import digishelf.composeapp.generated.resources.isbn
+import digishelf.composeapp.generated.resources.no_series
 import digishelf.composeapp.generated.resources.owned
 import digishelf.composeapp.generated.resources.read
 import digishelf.composeapp.generated.resources.search
@@ -93,6 +95,8 @@ fun OverviewScreen(
     state: OverviewState,
     onAction: (OverviewAction) -> Unit,
 ) {
+    val lazyListState = rememberLazyListState()
+
     var showFilterDialog by remember { mutableStateOf(false) }
 
     if (showFilterDialog) {
@@ -170,6 +174,16 @@ fun OverviewScreen(
                 }
             )
         )
+    }
+
+    LaunchedEffect(
+        state.searchQuery,
+        state.possessionStatus,
+        state.readStatus,
+        state.sortType,
+        state.searchType
+    ) {
+        lazyListState.scrollToItem(0) // Reset scroll position when filters change
     }
 
     Scaffold(
@@ -263,6 +277,7 @@ fun OverviewScreen(
                         CircularProgressIndicator()
                     } else {
                         LazyColumn(
+                            state = lazyListState,
                             modifier = Modifier
                                 .fillMaxSize(),
                         ) {
@@ -270,6 +285,24 @@ fun OverviewScreen(
                                 items = state.books,
                                 key = { book -> book.id }
                             ) { book ->
+                                val indexInList = state.books.indexOf(book)
+                                if (state.sortType == SortType.SERIES
+                                    && (book.bookSeries?.id != state.books.getOrNull(indexInList - 1)?.bookSeries?.id
+                                            || (book.bookSeries == null && indexInList == 0))
+                                ) {
+                                    Text(
+                                        text = book.bookSeries?.title ?: stringResource(Res.string.no_series),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(
+                                                start = 24.dp,
+                                                top = 8.dp,
+                                                end = 6.dp,
+                                                bottom = 2.dp
+                                            )
+                                    )
+                                }
                                 BookItem(
                                     book = book,
                                     onClick = {

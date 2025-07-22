@@ -171,8 +171,9 @@ class AddViewModel (
                 val pageCount = _state.value.pages.toIntOrNull()
                 val price = _state.value.price.toDoubleOrNull()
                 val imageUrl = _state.value.imageUrl
+                val bookSeries = _state.value.bookSeries
 
-                var book = Book(
+                val book = Book(
                     title = title,
                     author = author,
                     isbn = isbn,
@@ -183,13 +184,22 @@ class AddViewModel (
                     imageUrl = imageUrl,
                     price = price,
                     currency = "EUR", // TODO: Implement currency selection
-                    bookSeries = _state.value.bookSeries
+                    bookSeries = bookSeries
+
                 )
 
                 viewModelScope.launch {
-                    val newId = repository.addBook(book)
+                    var bookId: Long
+                    if (book.bookSeries?.id == 0L) {
+                        val seriesId = repository.addSeries(book.bookSeries)
+                        bookId = repository.addBook(book.copy(
+                            bookSeries = book.bookSeries.copy(id = seriesId)
+                        ))
+                    } else {
+                        bookId = repository.addBook(book)
+                    }
                     _state.value = AddState(
-                        addedBookId = newId,
+                        addedBookId = bookId,
                     )
                 }
             }

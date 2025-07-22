@@ -55,8 +55,8 @@ import androidx.compose.ui.unit.dp
 import de.malteans.digishelf.core.domain.BookSeries
 import de.malteans.digishelf.core.presentation.add.components.RatingBar
 import de.malteans.digishelf.core.presentation.components.CustomAlertDialog
-import de.malteans.digishelf.core.presentation.components.Dropdown
 import de.malteans.digishelf.core.presentation.components.customIconBarcodeScanner
+import de.malteans.digishelf.core.presentation.overview.components.SeriesDropdown
 import digishelf.composeapp.generated.resources.Res
 import digishelf.composeapp.generated.resources.add_book
 import digishelf.composeapp.generated.resources.author
@@ -69,7 +69,6 @@ import digishelf.composeapp.generated.resources.data_incomplete
 import digishelf.composeapp.generated.resources.error_msg_add_incomplete
 import digishelf.composeapp.generated.resources.is_double_isbn
 import digishelf.composeapp.generated.resources.isbn
-import digishelf.composeapp.generated.resources.no_series
 import digishelf.composeapp.generated.resources.owned
 import digishelf.composeapp.generated.resources.pages
 import digishelf.composeapp.generated.resources.price
@@ -390,14 +389,28 @@ fun AddScreen(
             Row (
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Dropdown(
-                    selectedOption = Pair(
-                        state.bookSeries,
-                        state.bookSeries?.title ?: stringResource(Res.string.no_series)
-                    ),
-                    options = state.bookSeriesList.associateBy({ it }, { it.title }),
+                val options: Map<Any?, String> = state.bookSeriesList.associateBy({ it as BookSeries? }, { it.title })
+                    .toMutableMap()
+                    .apply { put(null, "–") }
+                    .toMap()
+
+                SeriesDropdown(
+                    selectedOption = Pair<Any?, String>(state.bookSeries, state.bookSeries?.title ?: "–"),
+                    options = options,
+                    onValueChanged = { newSeries ->
+                        onAction(
+                            AddAction.OnBookSeriesChanged(newSeries as BookSeries?)
+                        )
+                    },
+                    onValueAdded = { newSeriesName ->
+                        onAction( AddAction.OnBookSeriesChanged(
+                            BookSeries(
+                                id = 0L,
+                                title = newSeriesName,
+                            )
+                        ))
+                    },
                     label = stringResource(Res.string.book_series),
-                    onValueChanged = { onAction(AddAction.OnBookSeriesChanged(it as BookSeries?)) },
                 )
             }
             // Pages, Price -----------------------------------------------------------------------

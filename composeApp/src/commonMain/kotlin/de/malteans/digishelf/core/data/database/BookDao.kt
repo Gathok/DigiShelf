@@ -1,7 +1,6 @@
 package de.malteans.digishelf.core.data.database
 
 import androidx.room.Dao
-import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -52,7 +51,8 @@ interface BookDao {
           (:isOwned IS NULL OR possessionStatus = :isOwned)
         ORDER BY 
           CASE WHEN :sortBy = 'title' THEN title END COLLATE NOCASE ASC,
-          CASE WHEN :sortBy = 'author' THEN author END COLLATE NOCASE ASC
+          CASE WHEN :sortBy = 'author' THEN author END COLLATE NOCASE ASC,
+          CASE WHEN :sortBy = 'series' THEN (CASE WHEN bookSeriesId IS NULL THEN 'ZZZZZZ' ELSE (SELECT title FROM book_series WHERE id == bookSeriesId) END) END COLLATE NOCASE ASC
         """
     )
     fun queryBooks(
